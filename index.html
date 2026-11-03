@@ -119,6 +119,8 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
 .seg button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .play{font-family:var(--display);font-size:2rem;font-weight:800;border:0;border-radius:999px;padding:16px 40px;background:var(--red);color:#fff;box-shadow:0 8px 0 #b8342a;cursor:pointer;animation:bob 1.4s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-6px)}}
+.row-voice{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
+.row-voice select{font:inherit;font-size:1rem;padding:8px 10px;border-radius:12px;border:3px solid #f2d39a;background:#fff;color:var(--ink);max-width:100%;min-width:0;flex:1 1 200px}
 .opt-row{display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif;font-size:1rem}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -154,7 +156,7 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
     <div class="station" id="station"><div class="sign" id="sign">🎨</div><div class="pole"></div></div>
     <div class="train" id="train">
       <div class="engine" id="engine" role="button" tabindex="0" aria-label="Train engine. Tap to toot the whistle!">
-        <svg viewBox="0 0 120 92" aria-hidden="true">
+        <svg viewBox="0 0 120 92" aria-hidden="true"><g transform="translate(120 0) scale(-1 1)">
           <rect x="20" y="14" width="14" height="22" rx="3" fill="#3a3a4a"/>
           <rect x="16" y="8" width="22" height="9" rx="4" fill="#3a3a4a"/>
           <rect x="44" y="24" width="10" height="12" rx="5" fill="#ffc928"/>
@@ -168,7 +170,7 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
           <g class="ewheel"><circle cx="28" cy="74" r="13" fill="#3a3a4a"/><circle cx="28" cy="74" r="5" fill="#ffc928"/><rect x="26" y="62" width="4" height="24" fill="#9aa"/></g>
           <g class="ewheel"><circle cx="58" cy="74" r="13" fill="#3a3a4a"/><circle cx="58" cy="74" r="5" fill="#ffc928"/><rect x="56" y="62" width="4" height="24" fill="#9aa"/></g>
           <g class="ewheel"><circle cx="94" cy="76" r="11" fill="#3a3a4a"/><circle cx="94" cy="76" r="4" fill="#ffc928"/><rect x="92" y="66" width="4" height="20" fill="#9aa"/></g>
-        </svg>
+        </g></svg>
       </div>
     </div>
   </section>
@@ -194,6 +196,8 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
     <div class="label">Choices to pick from</div>
     <div class="seg" id="choiceSeg"><button data-n="2">2 (easier)</button><button data-n="3">3</button><button data-n="4">4 (harder)</button></div>
     <label class="opt-row"><input type="checkbox" id="talkOpt" checked> Read everything out loud</label>
+    <div class="label">Voice</div>
+    <div class="row-voice"><select id="voiceSel" aria-label="Voice"></select><button class="icon-btn" id="voiceTest">▶ Test</button></div>
     <button class="play" id="playBtn">▶ Play</button>
   </div>
 </div>
@@ -266,10 +270,25 @@ function makeStop(topic){
 }
 
 // ---------- voice + sounds ----------
+// pick the warmest, most natural voice this device has
+const NOVELTY=/bubbles|bells|bad news|good news|boing|whisper|zarvox|trinoids|albert|jester|organ|cellos|superstar|wobble|bahh|hysterical|deranged|pipe|grandpa|grandma|rocko|eddy|flo|reed|sandy|shelley/i;
+const PREFER=[/natural|neural/i,/premium|enhanced/i,/samantha|ava|allison|nicky|zoe|susan/i,/google us english/i,/aria|jenny|michelle|emma|ana/i,/karen|moira|tessa|serena|kate|libby/i,/female/i];
+let voices=[],voice=null;
+function score(v){let s=0;PREFER.forEach((re,i)=>{if(re.test(v.name))s+=100-i*10});if(/en[-_]US/i.test(v.lang))s+=8;if(v.localService===false)s+=3;return s}
+function loadVoices(){
+  if(!window.speechSynthesis)return;
+  voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));
+  voice=voices.find(v=>v.name===opts.voice)||voices[0]||null;
+  const sel=$("voiceSel");sel.innerHTML="";
+  voices.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=v.name.replace(/\(.*?\)/g,"").trim()+(score(v)>=80?" ★":"");sel.appendChild(o)});
+  if(!voices.length){const o=document.createElement("option");o.textContent="Default voice";sel.appendChild(o)}
+  if(voice)sel.value=voice.name;
+}
+if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
 function speak(text,done){
   if(!opts.talk||!window.speechSynthesis){done&&setTimeout(done,700);return}
   let over=false;const fin=()=>{if(over)return;over=true;done&&done()};
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.88;u.pitch=1.25;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);if(voice){u.voice=voice;u.lang=voice.lang}else u.lang="en-US";u.rate=.92;u.pitch=1.08;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);
     setTimeout(fin,Math.max(2000,text.length*110))}catch(e){fin()}
 }
 let ac=null;
@@ -308,7 +327,7 @@ function fitTrain(){const tr=$("train");tr.style.transform="none";const w=tr.scr
   tr.style.transform=`scale(${Math.min(1,avail/w)})`}
 function puff(n=1){const sc=$("scene"),e=$("engine").getBoundingClientRect(),s=sc.getBoundingClientRect();
   for(let i=0;i<n;i++)setTimeout(()=>{const p=document.createElement("div");p.className="puff";
-    p.style.left=(e.left-s.left+e.width*.2)+"px";p.style.top=(e.top-s.top-6)+"px";sc.appendChild(p);setTimeout(()=>p.remove(),1700)},i*250)}
+    p.style.left=(e.left-s.left+e.width*.72)+"px";p.style.top=(e.top-s.top-6)+"px";sc.appendChild(p);setTimeout(()=>p.remove(),1700)},i*250)}
 function drive(secs,done){
   const sc=$("scene");sc.classList.add("moving");$("station").classList.add("away");chug(secs);
   const iv=setInterval(()=>puff(1),350);
@@ -397,6 +416,8 @@ $("topics").onclick=e=>{const b=e.target.closest(".topic");if(b){opts.topic=b.da
 $("stopsSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.stops=+b.dataset.n;sync()}};
 $("countSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.count=+b.dataset.n;sync()}};
 $("choiceSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.choices=+b.dataset.n;sync()}};
+$("voiceSel").onchange=()=>{voice=voices.find(v=>v.name===$("voiceSel").value)||voice;opts.voice=voice&&voice.name;store.set("opts",opts);speak("Hi friend! All aboard!")};
+$("voiceTest").onclick=()=>{const t=opts.talk;opts.talk=true;speak("Hi friend! Can you find the red balloon?");opts.talk=t};
 $("talkOpt").onchange=()=>{opts.talk=$("talkOpt").checked;sync()};
 $("playBtn").onclick=()=>{actx();try{speechSynthesis.speak(new SpeechSynthesisUtterance(""))}catch(e){}$("startScreen").hidden=true;newTrip()};
 $("menuBtn").onclick=()=>{try{speechSynthesis.cancel()}catch(e){}sync();$("startScreen").hidden=false};
