@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Choo Choo Stops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sniglet:wght@400;800&display=swap">
+<style>
+/* Layout: one screen for little hands. The question card with huge tap targets on top, the train scene along the bottom. */
+:root{
+  --sky:#bfe6ff; --sky2:#eaf7ff; --grass:#8fd36b; --hill:#a8e07f; --track:#9b6b43; --ink:#2b2a4a; --muted:#6c6a8f;
+  --red:#ef4b3c; --blue:#3f7fe0; --yellow:#ffc928; --green:#3fbf5f; --orange:#ff8a2b; --purple:#8e5bd8; --pink:#ff6fb1;
+  --card:#ffffff; --display:"Sniglet","Trebuchet MS",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:linear-gradient(#fff6dc,#ffeccc);color:var(--ink);font-family:var(--display);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+.app{max-width:720px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:12px;padding-block:10px 16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:1.4rem;margin:0;font-weight:800;color:var(--red)}
+.hud{display:flex;gap:8px;align-items:center}
+.tickets{display:flex;gap:4px;font-size:1.3rem}
+.tickets span{opacity:.25;transition:opacity .3s,transform .3s}
+.tickets span.got{opacity:1;transform:scale(1.15)}
+.icon-btn{background:#fff;border:0;color:var(--ink);font:inherit;font-size:1rem;border-radius:999px;padding:6px 12px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.08)}
+button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
+
+/* Question card */
+.ask{background:var(--card);border-radius:28px;padding:14px 14px 18px;box-shadow:0 8px 0 #f2d39a;display:flex;flex-direction:column;gap:12px;align-items:center;flex:1;justify-content:center;min-height:300px}
+.ask-top{display:flex;align-items:center;gap:10px;justify-content:center;width:100%}
+.say{font-size:clamp(1.5rem,6vw,2.2rem);font-weight:800;margin:0;text-align:center;text-wrap:balance}
+.say b{padding:0 .2em;border-radius:10px}
+.replay{flex:none;width:58px;height:58px;border-radius:50%;border:0;background:var(--yellow);font-size:1.8rem;cursor:pointer;box-shadow:0 5px 0 #d6a20e}
+.replay:active{transform:translateY(3px);box-shadow:0 2px 0 #d6a20e}
+.opts{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;width:100%}
+.opt{width:clamp(96px,27vw,150px);aspect-ratio:1;max-width:100%;border:0;border-radius:26px;background:#f6f3ff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(3.4rem,15vw,5.2rem);line-height:1;box-shadow:0 6px 0 #ddd5f7;transition:transform .12s;padding:0}
+.opt:active{transform:translateY(4px) scale(.97);box-shadow:0 2px 0 #ddd5f7}
+.opt svg{width:72%;height:72%}
+.opt.no{animation:wiggle .45s}
+@keyframes wiggle{20%{transform:rotate(-10deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(6deg)}}
+.opt.hint{animation:glow 1s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 6px 0 #ddd5f7,0 0 0 10px rgba(255,201,40,.7);transform:scale(1.06)}}
+.opt.yes{background:#dcf7e3;box-shadow:0 6px 0 #9fdcb0;animation:yay .5s}
+@keyframes yay{40%{transform:scale(1.15) rotate(-4deg)}}
+.opt.counted{background:#fff3c4;box-shadow:0 6px 0 #f0d77a}
+.opt .num{position:absolute;font-size:1.6rem;font-weight:800;color:var(--ink);background:#fff;border-radius:999px;width:2em;height:2em;display:flex;align-items:center;justify-content:center;
+  transform:translate(2.2em,-2.2em);box-shadow:0 2px 0 rgba(0,0,0,.1)}
+.opt{position:relative}
+.big-count{font-size:clamp(3rem,14vw,5rem);font-weight:800;color:var(--blue);min-height:1.1em;margin:0;line-height:1}
+
+/* Train scene */
+.scene{position:relative;height:210px;border-radius:26px;overflow:hidden;background:linear-gradient(var(--sky),var(--sky2) 70%);flex:none}
+.sun{position:absolute;top:14px;left:18px;width:46px;height:46px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 8px rgba(255,201,40,.3);cursor:pointer;border:0;padding:0}
+.cloud{position:absolute;top:22px;width:80px;height:28px;background:#fff;border-radius:30px;animation:drift 40s linear infinite}
+.cloud::before{content:"";position:absolute;width:38px;height:38px;border-radius:50%;background:#fff;left:14px;top:-18px}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-120vw)}}
+.layer{position:absolute;left:0;right:0;background-repeat:repeat-x}
+.hills{bottom:52px;height:80px;background-size:360px 80px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 80'%3E%3Cpath d='M0 80 Q60 10 120 60 Q180 0 250 50 Q310 20 360 80Z' fill='%23a8e07f'/%3E%3C/svg%3E")}
+.trees{bottom:44px;height:60px;background-size:240px 60px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'%3E%3Crect x='28' y='38' width='6' height='22' fill='%239b6b43'/%3E%3Ccircle cx='31' cy='30' r='16' fill='%2348a85a'/%3E%3Crect x='148' y='42' width='5' height='18' fill='%239b6b43'/%3E%3Ccircle cx='150' cy='36' r='12' fill='%235cbd6a'/%3E%3Ccircle cx='200' cy='54' r='6' fill='%23ff6fb1'/%3E%3Ccircle cx='90' cy='55' r='5' fill='%23ffc928'/%3E%3C/svg%3E")}
+.ground{position:absolute;left:0;right:0;bottom:0;height:52px;background:var(--grass)}
+.track{position:absolute;left:0;right:0;bottom:22px;height:14px;background-size:28px 14px;
+  background-image:linear-gradient(90deg,transparent 0 6px,#7a5232 6px 14px,transparent 14px),linear-gradient(transparent 3px,#5b5b6b 3px 6px,transparent 6px 9px,#5b5b6b 9px 12px,transparent 12px)}
+.moving .hills{animation:scroll 6s linear infinite}
+.moving .trees{animation:scroll2 2.6s linear infinite}
+.moving .track{animation:scroll3 .35s linear infinite}
+@keyframes scroll{to{background-position-x:-360px}}
+@keyframes scroll2{to{background-position-x:-240px}}
+@keyframes scroll3{to{background-position-x:-28px}}
+.station{position:absolute;bottom:34px;right:10px;display:flex;flex-direction:column;align-items:center;transition:transform 1s cubic-bezier(.2,.8,.3,1);z-index:2}
+.station .sign{background:#fff;border:4px solid var(--red);border-radius:14px;padding:2px 8px;font-size:1.8rem;line-height:1.1;box-shadow:0 3px 0 rgba(0,0,0,.1)}
+.station .pole{width:6px;height:46px;background:#777}
+.station.away{transform:translateX(160%)}
+.train{position:absolute;bottom:30px;right:64px;display:flex;align-items:flex-end;gap:4px;transform-origin:right bottom;z-index:3;transition:transform .5s}
+.engine{width:118px;height:92px;flex:none;cursor:pointer;position:relative}
+.engine svg{width:100%;height:100%;overflow:visible}
+.car{width:72px;height:46px;flex:none;position:relative;border-radius:10px 10px 6px 6px;cursor:pointer;margin-bottom:10px;animation:addcar .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes addcar{from{transform:translateX(-40px) scale(.4);opacity:0}}
+.car::after{content:"";position:absolute;right:-8px;bottom:12px;width:10px;height:5px;background:#555}
+.wheel{position:absolute;bottom:-12px;width:22px;height:22px;border-radius:50%;background:#3a3a4a;border:4px dashed #9aa}
+.wheel.l{left:6px}.wheel.r{right:6px}
+.moving .wheel,.moving .ewheel{animation:spin .5s linear infinite}
+.ewheel{transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cargo{position:absolute;left:50%;bottom:78%;transform:translateX(-50%);font-size:2.2rem;line-height:1;white-space:nowrap;display:flex;align-items:flex-end;justify-content:center}
+.cargo svg{width:46px;height:46px}
+.cargo.small{font-size:1.1rem;flex-wrap:wrap;width:68px}
+.car.bounce{animation:carb .6s}
+@keyframes carb{40%{transform:translateY(-16px) scale(1.08)}}
+.moving .car,.moving .engine{animation:chug .22s ease-in-out infinite alternate}
+@keyframes chug{to{transform:translateY(-2px)}}
+.puff{position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;opacity:.9;pointer-events:none;z-index:4;animation:puff 1.6s ease-out forwards}
+@keyframes puff{to{transform:translate(-40px,-90px) scale(2.6);opacity:0}}
+.flyer{position:fixed;z-index:30;pointer-events:none;font-size:4rem;line-height:1;transition:transform .8s cubic-bezier(.5,-.2,.5,1.1)}
+.flyer svg{width:90px;height:90px}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(255,246,220,.97);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.start{text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;max-width:480px;width:100%}
+.start h2{font-size:2.4rem;margin:0;color:var(--red);line-height:1.05}
+.start p{margin:0;font-size:1.1rem;color:var(--muted);font-family:system-ui,sans-serif;line-height:1.4}
+.label{font-weight:800;font-size:1.1rem}
+.topics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.topic{border:4px solid transparent;border-radius:20px;background:#fff;color:var(--ink);font:inherit;font-size:1rem;padding:10px 4px;cursor:pointer;box-shadow:0 4px 0 #f2d39a}
+.topic span{display:block;font-size:2rem}
+.topic[aria-pressed="true"]{border-color:var(--blue);background:#e8f1ff}
+.seg{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.seg button{border:3px solid #f2d39a;background:#fff;color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;font-size:1.05rem;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.play{font-family:var(--display);font-size:2rem;font-weight:800;border:0;border-radius:999px;padding:16px 40px;background:var(--red);color:#fff;box-shadow:0 8px 0 #b8342a;cursor:pointer;animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.opt-row{display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif;font-size:1rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<div class="app" id="app">
+  <header>
+    <h1>🚂 Choo Choo Stops</h1>
+    <div class="hud">
+      <div class="tickets" id="tickets" aria-label="Stations visited"></div>
+      <button class="icon-btn" id="menuBtn" aria-label="Grown-up menu">☰</button>
+    </div>
+  </header>
+
+  <section class="ask" id="ask">
+    <div class="ask-top">
+      <p class="say" id="say">All aboard!</p>
+      <button class="replay" id="replay" aria-label="Hear it again">🔊</button>
+    </div>
+    <p class="big-count" id="bigCount" hidden></p>
+    <div class="opts" id="opts"></div>
+  </section>
+
+  <section class="scene" id="scene">
+    <button class="sun" id="sun" aria-label="Sun"></button>
+    <div class="cloud" style="left:40%"></div><div class="cloud" style="left:90%;top:40px;animation-duration:55s"></div>
+    <div class="layer hills"></div>
+    <div class="layer trees"></div>
+    <div class="ground"></div>
+    <div class="track"></div>
+    <div class="station" id="station"><div class="sign" id="sign">🎨</div><div class="pole"></div></div>
+    <div class="train" id="train">
+      <div class="engine" id="engine" role="button" tabindex="0" aria-label="Train engine. Tap to toot the whistle!">
+        <svg viewBox="0 0 120 92" aria-hidden="true">
+          <rect x="20" y="14" width="14" height="22" rx="3" fill="#3a3a4a"/>
+          <rect x="16" y="8" width="22" height="9" rx="4" fill="#3a3a4a"/>
+          <rect x="44" y="24" width="10" height="12" rx="5" fill="#ffc928"/>
+          <rect x="8" y="34" width="66" height="34" rx="12" fill="#3f7fe0"/>
+          <rect x="70" y="16" width="42" height="52" rx="6" fill="#ef4b3c"/>
+          <rect x="66" y="10" width="50" height="10" rx="5" fill="#2b2a4a"/>
+          <rect x="78" y="24" width="26" height="20" rx="5" fill="#bfe6ff"/>
+          <rect x="8" y="46" width="66" height="6" fill="#ffc928"/>
+          <path d="M8 66 L-6 84 L14 84 Z" fill="#ffc928"/>
+          <circle cx="4" cy="44" r="5" fill="#fff59e"/>
+          <g class="ewheel"><circle cx="28" cy="74" r="13" fill="#3a3a4a"/><circle cx="28" cy="74" r="5" fill="#ffc928"/><rect x="26" y="62" width="4" height="24" fill="#9aa"/></g>
+          <g class="ewheel"><circle cx="58" cy="74" r="13" fill="#3a3a4a"/><circle cx="58" cy="74" r="5" fill="#ffc928"/><rect x="56" y="62" width="4" height="24" fill="#9aa"/></g>
+          <g class="ewheel"><circle cx="94" cy="76" r="11" fill="#3a3a4a"/><circle cx="94" cy="76" r="4" fill="#ffc928"/><rect x="92" y="66" width="4" height="20" fill="#9aa"/></g>
+        </svg>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="startScreen">
+  <div class="start">
+    <h2>Choo Choo Stops!</h2>
+    <p>The train stops at each station. Find the right thing and it rides on the train!</p>
+    <div class="label">What should we learn?</div>
+    <div class="topics" id="topics">
+      <button class="topic" data-t="mix"><span>🎲</span>Everything</button>
+      <button class="topic" data-t="colors"><span>🎨</span>Colors</button>
+      <button class="topic" data-t="shapes"><span>🔺</span>Shapes</button>
+      <button class="topic" data-t="animals"><span>🐮</span>Animals</button>
+      <button class="topic" data-t="counting"><span>🍎</span>Counting</button>
+      <button class="topic" data-t="size"><span>🐘</span>Big &amp; small</button>
+    </div>
+    <div class="label">Stations per trip</div>
+    <div class="seg" id="stopsSeg"><button data-n="3">3</button><button data-n="5">5</button><button data-n="8">8</button></div>
+    <div class="label">Count up to</div>
+    <div class="seg" id="countSeg"><button data-n="3">3</button><button data-n="5">5</button><button data-n="10">10</button></div>
+    <div class="label">Choices to pick from</div>
+    <div class="seg" id="choiceSeg"><button data-n="2">2 (easier)</button><button data-n="3">3</button><button data-n="4">4 (harder)</button></div>
+    <label class="opt-row"><input type="checkbox" id="talkOpt" checked> Read everything out loud</label>
+    <button class="play" id="playBtn">▶ Play</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem("cc_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+             set(k,v){try{localStorage.setItem("cc_"+k,JSON.stringify(v))}catch(e){}}};
+const pick=a=>a[Math.random()*a.length|0];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+let opts=Object.assign({topic:"mix",stops:5,count:5,choices:3,talk:true},store.get("opts",{}));
+
+// ---------- learning content ----------
+const COLORS=[["red","#ef4b3c"],["blue","#3f7fe0"],["yellow","#ffc928"],["green","#3fbf5f"],["orange","#ff8a2b"],["purple","#8e5bd8"],["pink","#ff6fb1"]];
+const SHAPES=["circle","square","triangle","star","heart","rectangle"];
+const ANIMALS=[["cow","🐮","moo, moo"],["dog","🐶","woof, woof"],["cat","🐱","meow"],["pig","🐷","oink, oink"],["duck","🦆","quack, quack"],
+  ["sheep","🐑","baa, baa"],["horse","🐴","neigh"],["frog","🐸","ribbit, ribbit"],["lion","🦁","roar"],["chicken","🐔","cluck, cluck"],
+  ["owl","🦉","hoo, hoo"],["bee","🐝","buzz, buzz"],["monkey","🐵","ooh ooh, ah ah"],["mouse","🐭","squeak, squeak"]];
+const THINGS=[["apple","apples","🍎"],["banana","bananas","🍌"],["star","stars","⭐"],["ball","balls","⚽"],["fish","fish","🐟"],
+  ["duck","ducks","🦆"],["car","cars","🚗"],["flower","flowers","🌸"],["strawberry","strawberries","🍓"],["cookie","cookies","🍪"]];
+const SIZE=[["apple","🍎"],["elephant","🐘"],["car","🚗"],["teddy bear","🧸"],["ball","⚽"],["dog","🐶"],["tree","🌳"],["fish","🐟"]];
+const NUMS=["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+const TOPIC_SIGN={colors:"🎨",shapes:"🔺",animals:"🐮",counting:"🍎",size:"🐘"};
+const CHEERS=["Yay! You did it!","Hooray! Great job!","Toot toot! You're so smart!","Woo hoo! All aboard!","Yes! High five!","Wonderful!"];
+
+function balloon(color){return `<svg viewBox="0 0 60 80"><ellipse cx="30" cy="30" rx="24" ry="28" fill="${color}"/><ellipse cx="21" cy="20" rx="6" ry="9" fill="#fff" opacity=".45"/><path d="M26 57 L34 57 L30 63Z" fill="${color}"/><path d="M30 63 Q24 70 30 78" stroke="#777" stroke-width="2" fill="none"/></svg>`}
+function shape(type,color){
+  const p={circle:`<circle cx="50" cy="50" r="42"/>`,square:`<rect x="10" y="10" width="80" height="80" rx="6"/>`,
+    triangle:`<path d="M50 8 L94 88 L6 88Z" stroke-linejoin="round"/>`,rectangle:`<rect x="4" y="24" width="92" height="52" rx="6"/>`,
+    star:`<path d="M50 6 L62 37 L95 38 L69 58 L78 92 L50 72 L22 92 L31 58 L5 38 L38 37Z"/>`,
+    heart:`<path d="M50 90 C10 62 4 38 18 22 C30 9 46 14 50 28 C54 14 70 9 82 22 C96 38 90 62 50 90Z"/>`}[type];
+  return `<svg viewBox="0 0 100 100"><g fill="${color}" stroke="rgba(0,0,0,.15)" stroke-width="3">${p}</g></svg>`;
+}
+
+// each station returns a question
+function makeStop(topic){
+  const n=opts.choices;
+  if(topic==="colors"){
+    const set=shuffle(COLORS).slice(0,n),t=pick(set);
+    return {topic,say:`Tap the <b style="background:${t[1]};color:#fff">${t[0]}</b> balloon!`,speak:`Tap the ${t[0]} balloon!`,
+      options:set.map(c=>({html:balloon(c[1]),label:`${c[0]} balloon`,name:c[0],ok:c===t})),
+      wrongHint:o=>`That one is ${o.name}. Can you find ${t[0]}?`,doneSay:`${t[0]}! Yes! The ${t[0]} balloon!`};
+  }
+  if(topic==="shapes"){
+    const set=shuffle(SHAPES).slice(0,n),t=pick(set),cols=shuffle(COLORS);
+    return {topic,say:`Find the <b>${t}</b>!`,speak:`Can you find the ${t}?`,
+      options:set.map((s,i)=>({html:shape(s,cols[i][1]),label:s,name:s,ok:s===t})),
+      wrongHint:o=>`That's a ${o.name}. Where's the ${t}?`,doneSay:`A ${t}! You found the ${t}!`};
+  }
+  if(topic==="animals"){
+    const set=shuffle(ANIMALS).slice(0,n),t=pick(set),bySound=Math.random()<.6;
+    return {topic,say:bySound?`Who says "<b>${t[2].split(",")[0]}</b>"?`:`Where is the <b>${t[0]}</b>?`,
+      speak:bySound?`Who says ${t[2]}?`:`Where is the ${t[0]}?`,
+      options:set.map(a=>({html:a[1],label:a[0],name:a[0],ok:a===t,sound:a[2]})),
+      wrongHint:o=>`That's a ${o.name}! The ${o.name} says ${o.sound}. Find the ${t[0]}!`,doneSay:`The ${t[0]} says ${t[2]}!`};
+  }
+  if(topic==="size"){
+    const t=pick(SIZE),big=Math.random()<.5;const word=big?"big":"little";
+    const o=shuffle([{html:`<span style="font-size:1.25em">${t[1]}</span>`,ok:big,name:"big"},{html:`<span style="font-size:.5em">${t[1]}</span>`,ok:!big,name:"little"}]);
+    o.forEach(x=>x.label=`${x.name} ${t[0]}`);
+    return {topic,say:`Tap the <b>${word.toUpperCase()}</b> ${t[0]}!`,speak:`Tap the ${word} ${t[0]}!`,options:o,
+      wrongHint:x=>`That one is ${x.name}. Find the ${word} one!`,doneSay:`Yes! The ${word} ${t[0]}!`};
+  }
+  // counting: tap every one
+  const t=pick(THINGS),k=rnd(1,opts.count);
+  return {topic:"counting",count:k,thing:t,say:`Let's count the <b>${t[1]}</b>! Tap each one.`,speak:`Let's count the ${t[1]}! Tap each one.`,
+    options:Array.from({length:k},()=>({html:t[2],label:t[1]})),doneSay:`${NUMS[k]} ${k===1?t[0]:t[1]}! Great counting!`};
+}
+
+// ---------- voice + sounds ----------
+function speak(text,done){
+  if(!opts.talk||!window.speechSynthesis){done&&setTimeout(done,700);return}
+  let over=false;const fin=()=>{if(over)return;over=true;done&&done()};
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.88;u.pitch=1.25;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);
+    setTimeout(fin,Math.max(2000,text.length*110))}catch(e){fin()}
+}
+let ac=null;
+function actx(){ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();return ac}
+function tone(freqs,dur=.1,type="sine",vol=.18){try{const a=actx();freqs.forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;
+  const t=a.currentTime+i*dur;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur*1.6);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur*1.8)})}catch(e){}}
+function whistle(){try{const a=actx(),t=a.currentTime;[587,740,880].forEach(f=>{const o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain();
+  o.type="triangle";o.frequency.value=f;l.frequency.value=6;lg.gain.value=8;l.connect(lg).connect(o.frequency);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.05);g.gain.setValueAtTime(.12,t+.25);g.gain.exponentialRampToValueAtTime(.0001,t+.3);
+  g.gain.exponentialRampToValueAtTime(.12,t+.38);g.gain.setValueAtTime(.12,t+.8);g.gain.exponentialRampToValueAtTime(.0001,t+.95);
+  o.connect(g).connect(a.destination);o.start(t);l.start(t);o.stop(t+1);l.stop(t+1)})}catch(e){}}
+function chug(secs){try{const a=actx();for(let i=0;i<secs/.2;i++){const len=a.sampleRate*.12,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+  for(let j=0;j<len;j++)d[j]=(Math.random()*2-1)*Math.pow(1-j/len,3);const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+  f.type="lowpass";f.frequency.value=700;g.gain.value=i%2?.35:.6;s.buffer=buf;s.connect(f).connect(g).connect(a.destination);s.start(a.currentTime+i*.2)}}catch(e){}}
+const ding=()=>tone([1047,1319],.1,"sine",.15);
+const boop=()=>tone([330,262],.12,"triangle",.15);
+const pop=n=>tone([440*Math.pow(2,n/12)],.12,"sine",.2);
+
+// ---------- train ----------
+const CAR_COLORS=["#ffc928","#3fbf5f","#ff8a2b","#8e5bd8","#ff6fb1","#3f7fe0","#ef4b3c"];
+let cars=[];
+function addCar(stop,choice){
+  const car=document.createElement("div");car.className="car";car.style.background=CAR_COLORS[cars.length%CAR_COLORS.length];
+  car.innerHTML=`<span class="wheel l"></span><span class="wheel r"></span><div class="cargo"></div>`;
+  const cargo=car.querySelector(".cargo");
+  if(stop.topic==="counting"){cargo.classList.add("small");cargo.textContent=stop.thing[2].repeat(stop.count)}
+  else cargo.innerHTML=choice.html.replace(/font-size:[^;"]+/,"font-size:1em");
+  cargo.style.opacity="0";
+  const label=stop.topic==="counting"?`${NUMS[stop.count]} ${stop.count===1?stop.thing[0]:stop.thing[1]}`:choice.label;
+  car.dataset.label=label;car.setAttribute("role","button");car.setAttribute("aria-label",label);
+  car.onclick=()=>{car.classList.remove("bounce");void car.offsetWidth;car.classList.add("bounce");pop(rnd(0,7));speak(label)};
+  $("train").prepend(car);cars.push(car);fitTrain();return {car,cargo};
+}
+function fitTrain(){const tr=$("train");tr.style.transform="none";const w=tr.scrollWidth,avail=$("scene").clientWidth-80;
+  tr.style.transform=`scale(${Math.min(1,avail/w)})`}
+function puff(n=1){const sc=$("scene"),e=$("engine").getBoundingClientRect(),s=sc.getBoundingClientRect();
+  for(let i=0;i<n;i++)setTimeout(()=>{const p=document.createElement("div");p.className="puff";
+    p.style.left=(e.left-s.left+e.width*.2)+"px";p.style.top=(e.top-s.top-6)+"px";sc.appendChild(p);setTimeout(()=>p.remove(),1700)},i*250)}
+function drive(secs,done){
+  const sc=$("scene");sc.classList.add("moving");$("station").classList.add("away");chug(secs);
+  const iv=setInterval(()=>puff(1),350);
+  setTimeout(()=>{clearInterval(iv);sc.classList.remove("moving");$("station").classList.remove("away");done&&done()},secs*1000);
+}
+$("engine").addEventListener("click",()=>{whistle();puff(3);speak("Choo choo!")});
+$("engine").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("engine").click()}});
+$("sun").onclick=()=>{ding();speak("Hello sunshine!")};
+
+// ---------- game flow ----------
+let stopsDone=0,stop=null,wrongs=0,busy=false,tapped=0;
+function topicFor(i){if(opts.topic!=="mix")return opts.topic;const all=["colors","shapes","animals","counting","size"];return all[(i+rnd(0,4))%5]}
+function tickets(){const t=$("tickets");t.innerHTML="";for(let i=0;i<opts.stops;i++){const s=document.createElement("span");s.textContent="🎟️";if(i<stopsDone)s.className="got";t.appendChild(s)}}
+function showStop(){
+  busy=false;wrongs=0;tapped=0;stop=makeStop(topicFor(stopsDone));
+  $("sign").textContent=TOPIC_SIGN[stop.topic];
+  $("say").innerHTML=stop.say;$("bigCount").hidden=stop.topic!=="counting";$("bigCount").textContent="";
+  const box=$("opts");box.innerHTML="";
+  stop.options.forEach((o,i)=>{const b=document.createElement("button");b.className="opt";b.innerHTML=o.html;b.setAttribute("aria-label",o.label);
+    if(stop.topic==="counting"&&stop.count>4)b.style.width="clamp(72px,20vw,110px)";
+    b.onclick=()=>choose(o,b);box.appendChild(b)});
+  speak(stop.speak);
+}
+function choose(o,btn){
+  if(busy)return;
+  if(stop.topic==="counting"){
+    if(btn.classList.contains("counted"))return;
+    tapped++;btn.classList.add("counted");const n=document.createElement("span");n.className="num";n.textContent=tapped;btn.appendChild(n);
+    pop(tapped);$("bigCount").textContent=tapped;speak(NUMS[tapped]);
+    if(tapped===stop.count){busy=true;setTimeout(()=>success(o,btn),700)}
+    return;
+  }
+  if(o.ok){busy=true;btn.classList.add("yes");success(o,btn);return}
+  wrongs++;btn.classList.remove("no");void btn.offsetWidth;btn.classList.add("no");boop();
+  if(o.sound&&stop.topic==="animals")speak(stop.wrongHint(o));else speak(stop.wrongHint(o));
+  if(wrongs>=2)[...$("opts").children].forEach((b,i)=>{if(stop.options[i].ok)b.classList.add("hint")});
+}
+function success(o,btn){
+  ding();burst(60);
+  const {car,cargo}=addCar(stop,o);
+  // fly the picked thing onto its new car
+  const from=btn.getBoundingClientRect(),fly=document.createElement("div");fly.className="flyer";
+  fly.innerHTML=stop.topic==="counting"?stop.thing[2]:o.html.replace(/font-size:[^;"]+/,"font-size:1em");
+  fly.style.left=(from.left+from.width/2-45)+"px";fly.style.top=(from.top+from.height/2-45)+"px";document.body.appendChild(fly);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const to=cargo.getBoundingClientRect();
+    fly.style.transform=`translate(${to.left+to.width/2-from.left-from.width/2}px,${to.top+to.height/2-from.top-from.height/2}px) scale(.45)`}));
+  setTimeout(()=>{fly.remove();cargo.style.opacity="1";car.classList.add("bounce");whistle();puff(3)},850);
+  stopsDone++;tickets();
+  const line=stop.doneSay+" "+pick(CHEERS);
+  speak(line,()=>{
+    if(stopsDone>=opts.stops){finishTrip();return}
+    $("say").textContent="All aboard! Choo choo!";$("opts").innerHTML="";$("bigCount").hidden=true;
+    drive(3,showStop);
+  });
+}
+function finishTrip(){
+  $("say").textContent="What a train! Let's look at everything we found!";$("opts").innerHTML="";$("bigCount").hidden=true;
+  drive(3,()=>{
+    speak("Let's look at everything we found!",()=>{
+      const list=cars.slice().reverse();let i=0;
+      const next=()=>{if(i>=list.length){done();return}const c=list[i++];c.classList.remove("bounce");void c.offsetWidth;c.classList.add("bounce");pop(i);
+        $("say").textContent=c.dataset.label;speak(c.dataset.label,()=>setTimeout(next,250))};
+      next();
+    });
+  });
+  function done(){
+    burst(220);whistle();puff(4);$("say").textContent="Hooray! You're a super train driver!";speak("Hooray! You're a super train driver!");
+    const box=$("opts");box.innerHTML="";const b=document.createElement("button");b.className="play";b.textContent="🚂 Ride again";b.onclick=newTrip;box.appendChild(b);
+  }
+}
+function newTrip(){
+  cars.forEach(c=>c.remove());cars=[];fitTrain();stopsDone=0;tickets();
+  $("say").textContent="All aboard!";$("opts").innerHTML="";whistle();puff(3);
+  speak("All aboard! Choo choo!",()=>drive(2.5,showStop));
+}
+
+// ---------- start screen ----------
+function sync(){
+  document.querySelectorAll("#topics .topic").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===opts.topic));
+  document.querySelectorAll("#stopsSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.n===opts.stops));
+  document.querySelectorAll("#countSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.n===opts.count));
+  document.querySelectorAll("#choiceSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.n===opts.choices));
+  $("talkOpt").checked=opts.talk;store.set("opts",opts);
+}
+$("topics").onclick=e=>{const b=e.target.closest(".topic");if(b){opts.topic=b.dataset.t;sync()}};
+$("stopsSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.stops=+b.dataset.n;sync()}};
+$("countSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.count=+b.dataset.n;sync()}};
+$("choiceSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.choices=+b.dataset.n;sync()}};
+$("talkOpt").onchange=()=>{opts.talk=$("talkOpt").checked;sync()};
+$("playBtn").onclick=()=>{actx();try{speechSynthesis.speak(new SpeechSynthesisUtterance(""))}catch(e){}$("startScreen").hidden=true;newTrip()};
+$("menuBtn").onclick=()=>{try{speechSynthesis.cancel()}catch(e){}sync();$("startScreen").hidden=false};
+$("replay").onclick=()=>{if(stop&&!busy)speak(stop.speak);else whistle()};
+window.addEventListener("resize",fitTrain);
+
+// ---------- confetti ----------
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cc=$("confetti"),cx=cc.getContext("2d");let bits=[],raf=null;
+function burst(n){
+  if(reduce)return;cc.width=innerWidth;cc.height=innerHeight;
+  const colors=["#ef4b3c","#3f7fe0","#ffc928","#3fbf5f","#ff8a2b","#8e5bd8","#ff6fb1"];
+  for(let i=0;i<n;i++)bits.push({x:cc.width/2,y:cc.height*.35,vx:(Math.random()-.5)*14,vy:Math.random()*-13-4,
+    s:Math.random()*8+6,c:colors[i%colors.length],r:Math.random()*6,vr:(Math.random()-.5)*.3,life:120});
+  if(!raf)loop();
+}
+function loop(){
+  cx.clearRect(0,0,cc.width,cc.height);
+  bits.forEach(b=>{b.vy+=.45;b.x+=b.vx;b.y+=b.vy;b.r+=b.vr;b.life--;cx.save();cx.translate(b.x,b.y);cx.rotate(b.r);cx.fillStyle=b.c;cx.fillRect(-b.s/2,-b.s/4,b.s,b.s/2);cx.restore()});
+  bits=bits.filter(b=>b.life>0&&b.y<cc.height+20);
+  raf=bits.length?requestAnimationFrame(loop):(cx.clearRect(0,0,cc.width,cc.height),null);
+}
+sync();tickets();
+})();
+</script>
+</body>
+</html>
