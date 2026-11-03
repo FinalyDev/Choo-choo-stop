@@ -86,9 +86,12 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
 .car{width:72px;height:46px;flex:none;position:relative;border-radius:10px 10px 6px 6px;cursor:pointer;margin-bottom:10px;animation:addcar .5s cubic-bezier(.3,1.6,.5,1)}
 @keyframes addcar{from{transform:translateX(-40px) scale(.4);opacity:0}}
 .car::after{content:"";position:absolute;right:-8px;bottom:12px;width:10px;height:5px;background:#555}
-.wheel{position:absolute;bottom:-12px;width:22px;height:22px;border-radius:50%;background:#3a3a4a;border:4px dashed #9aa}
+.wheel{position:absolute;bottom:-12px;width:24px;height:24px}
 .wheel.l{left:6px}.wheel.r{right:6px}
-.moving .wheel,.moving .ewheel{animation:spin .5s linear infinite}
+.wheel svg{width:100%;height:100%;display:block}
+.moving .wheel svg{animation:spin .6s linear infinite}
+/* the engine drawing is mirrored, so its wheels turn the other way in its own space to match the cars */
+.moving .ewheel{animation:spin .6s linear infinite reverse}
 .ewheel{transform-box:fill-box;transform-origin:center}
 @keyframes spin{to{transform:rotate(360deg)}}
 .cargo{position:absolute;left:50%;bottom:78%;transform:translateX(-50%);font-size:2.2rem;line-height:1;white-space:nowrap;display:flex;align-items:flex-end;justify-content:center}
@@ -119,8 +122,6 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
 .seg button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .play{font-family:var(--display);font-size:2rem;font-weight:800;border:0;border-radius:999px;padding:16px 40px;background:var(--red);color:#fff;box-shadow:0 8px 0 #b8342a;cursor:pointer;animation:bob 1.4s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-6px)}}
-.row-voice{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
-.row-voice select{font:inherit;font-size:1rem;padding:8px 10px;border-radius:12px;border:3px solid #f2d39a;background:#fff;color:var(--ink);max-width:100%;min-width:0;flex:1 1 200px}
 .opt-row{display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif;font-size:1rem}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -167,9 +168,9 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
           <rect x="8" y="46" width="66" height="6" fill="#ffc928"/>
           <path d="M8 66 L-6 84 L14 84 Z" fill="#ffc928"/>
           <circle cx="4" cy="44" r="5" fill="#fff59e"/>
-          <g class="ewheel"><circle cx="28" cy="74" r="13" fill="#3a3a4a"/><circle cx="28" cy="74" r="5" fill="#ffc928"/><rect x="26" y="62" width="4" height="24" fill="#9aa"/></g>
-          <g class="ewheel"><circle cx="58" cy="74" r="13" fill="#3a3a4a"/><circle cx="58" cy="74" r="5" fill="#ffc928"/><rect x="56" y="62" width="4" height="24" fill="#9aa"/></g>
-          <g class="ewheel"><circle cx="94" cy="76" r="11" fill="#3a3a4a"/><circle cx="94" cy="76" r="4" fill="#ffc928"/><rect x="92" y="66" width="4" height="20" fill="#9aa"/></g>
+          <g class="ewheel"><circle cx="28" cy="74" r="13" fill="#3a3a4a"/><circle cx="28" cy="74" r="5" fill="#ffc928"/><rect x="26" y="62" width="4" height="24" fill="#9aa"/><rect x="16" y="72" width="24" height="4" fill="#9aa"/><circle cx="28" cy="74" r="5" fill="#ffc928"/></g>
+          <g class="ewheel"><circle cx="58" cy="74" r="13" fill="#3a3a4a"/><circle cx="58" cy="74" r="5" fill="#ffc928"/><rect x="56" y="62" width="4" height="24" fill="#9aa"/><rect x="46" y="72" width="24" height="4" fill="#9aa"/><circle cx="58" cy="74" r="5" fill="#ffc928"/></g>
+          <g class="ewheel"><circle cx="94" cy="76" r="11" fill="#3a3a4a"/><circle cx="94" cy="76" r="4" fill="#ffc928"/><rect x="92" y="66" width="4" height="20" fill="#9aa"/><rect x="84" y="74" width="20" height="4" fill="#9aa"/><circle cx="94" cy="76" r="4" fill="#ffc928"/></g>
         </g></svg>
       </div>
     </div>
@@ -188,6 +189,12 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
       <button class="topic" data-t="animals"><span>🐮</span>Animals</button>
       <button class="topic" data-t="counting"><span>🍎</span>Counting</button>
       <button class="topic" data-t="size"><span>🐘</span>Big &amp; small</button>
+      <button class="topic" data-t="letters"><span>🔤</span>Letters</button>
+      <button class="topic" data-t="numbers"><span>🔢</span>Numbers</button>
+      <button class="topic" data-t="vehicles"><span>🚒</span>Things that go</button>
+      <button class="topic" data-t="body"><span>👃</span>My body</button>
+      <button class="topic" data-t="feelings"><span>😀</span>Feelings</button>
+      <button class="topic" data-t="food"><span>🥕</span>Food</button>
     </div>
     <div class="label">Stations per trip</div>
     <div class="seg" id="stopsSeg"><button data-n="3">3</button><button data-n="5">5</button><button data-n="8">8</button></div>
@@ -196,8 +203,7 @@ button:focus-visible{outline:4px solid var(--blue);outline-offset:3px}
     <div class="label">Choices to pick from</div>
     <div class="seg" id="choiceSeg"><button data-n="2">2 (easier)</button><button data-n="3">3</button><button data-n="4">4 (harder)</button></div>
     <label class="opt-row"><input type="checkbox" id="talkOpt" checked> Read everything out loud</label>
-    <div class="label">Voice</div>
-    <div class="row-voice"><select id="voiceSel" aria-label="Voice"></select><button class="icon-btn" id="voiceTest">▶ Test</button></div>
+
     <button class="play" id="playBtn">▶ Play</button>
   </div>
 </div>
@@ -221,8 +227,21 @@ const ANIMALS=[["cow","🐮","moo, moo"],["dog","🐶","woof, woof"],["cat","�
 const THINGS=[["apple","apples","🍎"],["banana","bananas","🍌"],["star","stars","⭐"],["ball","balls","⚽"],["fish","fish","🐟"],
   ["duck","ducks","🦆"],["car","cars","🚗"],["flower","flowers","🌸"],["strawberry","strawberries","🍓"],["cookie","cookies","🍪"]];
 const SIZE=[["apple","🍎"],["elephant","🐘"],["car","🚗"],["teddy bear","🧸"],["ball","⚽"],["dog","🐶"],["tree","🌳"],["fish","🐟"]];
+const LETTERS=[["A","apple","🍎"],["B","ball","⚽"],["C","cat","🐱"],["D","dog","🐶"],["E","egg","🥚"],["F","fish","🐟"],["G","grapes","🍇"],
+  ["H","hat","🎩"],["I","ice cream","🍦"],["J","juice","🧃"],["K","kite","🪁"],["L","lion","🦁"],["M","moon","🌙"],["N","nose","👃"],["O","octopus","🐙"],
+  ["P","pig","🐷"],["Q","queen","👑"],["R","rainbow","🌈"],["S","sun","☀️"],["T","tree","🌳"],["U","umbrella","☂️"],["V","van","🚐"],["W","whale","🐳"],
+  ["Y","yo-yo","🪀"],["Z","zebra","🦓"]];
+const VEHICLES=[["car","🚗","vroom, vroom"],["fire truck","🚒","wee-oo, wee-oo"],["train","🚂","choo, choo"],["airplane","✈️","zoooom"],
+  ["boat","🛥️","toot, toot"],["tractor","🚜","putt, putt, putt"],["helicopter","🚁","whirr, whirr"],["bicycle","🚲","ring, ring"],["rocket","🚀","blast off"],["ambulance","🚑","nee-naw, nee-naw"]];
+const BODY=[["eyes","👀","We see with our eyes!"],["nose","👃","We smell with our nose!"],["ear","👂","We hear with our ears!"],["mouth","👄","We eat and talk with our mouth!"],
+  ["hand","✋","We wave hello with our hand!"],["foot","🦶","We walk and jump with our feet!"],["teeth","🦷","We brush our teeth!"],["brain","🧠","We think with our brain!"]];
+const FEELINGS=[["happy","😀","Happy faces smile!"],["sad","😢","Sad faces cry. A hug helps!"],["mad","😠","Mad faces frown. Take a big breath!"],["sleepy","😴","Sleepy faces need a nap!"],
+  ["surprised","😮","Oh wow!"],["silly","🤪","Silly faces are funny!"],["scared","😨","Scared? It's okay. We're safe!"]];
+const FOOD=[["apple","🍎"],["banana","🍌"],["grapes","🍇"],["carrot","🥕"],["cheese","🧀"],["bread","🍞"],["milk","🥛"],["egg","🥚"],
+  ["pizza","🍕"],["strawberry","🍓"],["broccoli","🥦"],["watermelon","🍉"],["corn","🌽"],["cookie","🍪"]];
 const NUMS=["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
-const TOPIC_SIGN={colors:"🎨",shapes:"🔺",animals:"🐮",counting:"🍎",size:"🐘"};
+const TOPIC_SIGN={colors:"🎨",shapes:"🔺",animals:"🐮",counting:"🍎",size:"🐘",letters:"🔤",numbers:"🔢",vehicles:"🚒",body:"👃",feelings:"😀",food:"🥕"};
+const ALL_TOPICS=Object.keys(TOPIC_SIGN);
 const CHEERS=["Yay! You did it!","Hooray! Great job!","Toot toot! You're so smart!","Woo hoo! All aboard!","Yes! High five!","Wonderful!"];
 
 function balloon(color){return `<svg viewBox="0 0 60 80"><ellipse cx="30" cy="30" rx="24" ry="28" fill="${color}"/><ellipse cx="21" cy="20" rx="6" ry="9" fill="#fff" opacity=".45"/><path d="M26 57 L34 57 L30 63Z" fill="${color}"/><path d="M30 63 Q24 70 30 78" stroke="#777" stroke-width="2" fill="none"/></svg>`}
@@ -256,6 +275,34 @@ function makeStop(topic){
       options:set.map(a=>({html:a[1],label:a[0],name:a[0],ok:a===t,sound:a[2]})),
       wrongHint:o=>`That's a ${o.name}! The ${o.name} says ${o.sound}. Find the ${t[0]}!`,doneSay:`The ${t[0]} says ${t[2]}!`};
   }
+  if(topic==="letters"){
+    const set=shuffle(LETTERS).slice(0,n),t=pick(set),cols=shuffle(COLORS);
+    return {topic,say:`Find the letter <b>${t[0]}</b>!`,speak:`Can you find the letter ${t[0]}?`,
+      options:set.map((l,i)=>({html:`<span style="color:${cols[i][1]};font-weight:800">${l[0]}</span>`,label:`${l[0]} is for ${l[1]}`,name:l[0],ok:l===t,cargo:`${l[0]}${l[2]}`})),
+      wrongHint:o=>`That's the letter ${o.name}. Where's ${t[0]}?`,doneSay:`${t[0]}! ${t[0]} is for ${t[1]}!`};
+  }
+  if(topic==="numbers"){
+    const top=Math.max(n,opts.count),set=shuffle(Array.from({length:top},(_,i)=>i+1)).slice(0,n),t=pick(set),cols=shuffle(COLORS);
+    return {topic,say:`Find the number <b>${t}</b>!`,speak:`Can you find the number ${NUMS[t]}?`,
+      options:set.map((k,i)=>({html:`<span style="color:${cols[i%cols.length][1]};font-weight:800">${k}</span>`,label:`number ${NUMS[k]}`,name:NUMS[k],ok:k===t})),
+      wrongHint:o=>`That's ${o.name}. Where's ${NUMS[t]}?`,doneSay:`${NUMS[t]}! You found ${NUMS[t]}!`};
+  }
+  if(topic==="vehicles"){
+    const set=shuffle(VEHICLES).slice(0,n),t=pick(set),bySound=Math.random()<.6;
+    return {topic,say:bySound?`What goes "<b>${t[2].split(",")[0]}</b>"?`:`Where is the <b>${t[0]}</b>?`,
+      speak:bySound?`What goes ${t[2]}?`:`Where is the ${t[0]}?`,
+      options:set.map(v=>({html:v[1],label:v[0],name:v[0],ok:v===t,sound:v[2]})),
+      wrongHint:o=>`That's a ${o.name}! It goes ${o.sound}. Find the ${t[0]}!`,doneSay:`The ${t[0]} goes ${t[2]}!`};
+  }
+  if(topic==="body"||topic==="feelings"||topic==="food"){
+    const list=topic==="body"?BODY:topic==="feelings"?FEELINGS:FOOD,set=shuffle(list).slice(0,n),t=pick(set);
+    const ask=topic==="feelings"?`Who looks <b>${t[0]}</b>?`:`Where ${["eyes","teeth","grapes"].includes(t[0])?"are":"is"} the <b>${t[0]}</b>?`;
+    const askS=topic==="feelings"?`Who looks ${t[0]}?`:ask.replace(/<\/?b>/g,"");
+    return {topic,say:ask,speak:askS,
+      options:set.map(x=>({html:x[1],label:topic==="feelings"?`${x[0]} face`:x[0],name:x[0],ok:x===t})),
+      wrongHint:o=>topic==="feelings"?`That face is ${o.name}. Who looks ${t[0]}?`:`That's the ${o.name}. Find the ${t[0]}!`,
+      doneSay:t[2]?`${t[0][0].toUpperCase()+t[0].slice(1)}! ${t[2]}`:`Yum! The ${t[0]}!`};
+  }
   if(topic==="size"){
     const t=pick(SIZE),big=Math.random()<.5;const word=big?"big":"little";
     const o=shuffle([{html:`<span style="font-size:1.25em">${t[1]}</span>`,ok:big,name:"big"},{html:`<span style="font-size:.5em">${t[1]}</span>`,ok:!big,name:"little"}]);
@@ -278,11 +325,7 @@ function score(v){let s=0;PREFER.forEach((re,i)=>{if(re.test(v.name))s+=100-i*10
 function loadVoices(){
   if(!window.speechSynthesis)return;
   voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));
-  voice=voices.find(v=>v.name===opts.voice)||voices[0]||null;
-  const sel=$("voiceSel");sel.innerHTML="";
-  voices.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=v.name.replace(/\(.*?\)/g,"").trim()+(score(v)>=80?" ★":"");sel.appendChild(o)});
-  if(!voices.length){const o=document.createElement("option");o.textContent="Default voice";sel.appendChild(o)}
-  if(voice)sel.value=voice.name;
+  voice=voices[0]||null;
 }
 if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
 function speak(text,done){
@@ -313,9 +356,11 @@ const CAR_COLORS=["#ffc928","#3fbf5f","#ff8a2b","#8e5bd8","#ff6fb1","#3f7fe0","#
 let cars=[];
 function addCar(stop,choice){
   const car=document.createElement("div");car.className="car";car.style.background=CAR_COLORS[cars.length%CAR_COLORS.length];
-  car.innerHTML=`<span class="wheel l"></span><span class="wheel r"></span><div class="cargo"></div>`;
+  const W=`<svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#3a3a4a"/><rect x="11" y="2" width="4" height="22" fill="#9aa"/><rect x="2" y="11" width="22" height="4" fill="#9aa"/><circle cx="13" cy="13" r="4.5" fill="#ffc928"/></svg>`;
+  car.innerHTML=`<span class="wheel l">${W}</span><span class="wheel r">${W}</span><div class="cargo"></div>`;
   const cargo=car.querySelector(".cargo");
   if(stop.topic==="counting"){cargo.classList.add("small");cargo.textContent=stop.thing[2].repeat(stop.count)}
+  else if(choice.cargo)cargo.textContent=choice.cargo;
   else cargo.innerHTML=choice.html.replace(/font-size:[^;"]+/,"font-size:1em");
   cargo.style.opacity="0";
   const label=stop.topic==="counting"?`${NUMS[stop.count]} ${stop.count===1?stop.thing[0]:stop.thing[1]}`:choice.label;
@@ -339,7 +384,8 @@ $("sun").onclick=()=>{ding();speak("Hello sunshine!")};
 
 // ---------- game flow ----------
 let stopsDone=0,stop=null,wrongs=0,busy=false,tapped=0;
-function topicFor(i){if(opts.topic!=="mix")return opts.topic;const all=["colors","shapes","animals","counting","size"];return all[(i+rnd(0,4))%5]}
+let lastTopic="";
+function topicFor(i){if(opts.topic!=="mix")return opts.topic;let t;do{t=pick(ALL_TOPICS)}while(t===lastTopic);lastTopic=t;return t}
 function tickets(){const t=$("tickets");t.innerHTML="";for(let i=0;i<opts.stops;i++){const s=document.createElement("span");s.textContent="🎟️";if(i<stopsDone)s.className="got";t.appendChild(s)}}
 function showStop(){
   busy=false;wrongs=0;tapped=0;stop=makeStop(topicFor(stopsDone));
@@ -416,8 +462,6 @@ $("topics").onclick=e=>{const b=e.target.closest(".topic");if(b){opts.topic=b.da
 $("stopsSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.stops=+b.dataset.n;sync()}};
 $("countSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.count=+b.dataset.n;sync()}};
 $("choiceSeg").onclick=e=>{const b=e.target.closest("button");if(b){opts.choices=+b.dataset.n;sync()}};
-$("voiceSel").onchange=()=>{voice=voices.find(v=>v.name===$("voiceSel").value)||voice;opts.voice=voice&&voice.name;store.set("opts",opts);speak("Hi friend! All aboard!")};
-$("voiceTest").onclick=()=>{const t=opts.talk;opts.talk=true;speak("Hi friend! Can you find the red balloon?");opts.talk=t};
 $("talkOpt").onchange=()=>{opts.talk=$("talkOpt").checked;sync()};
 $("playBtn").onclick=()=>{actx();try{speechSynthesis.speak(new SpeechSynthesisUtterance(""))}catch(e){}$("startScreen").hidden=true;newTrip()};
 $("menuBtn").onclick=()=>{try{speechSynthesis.cancel()}catch(e){}sync();$("startScreen").hidden=false};
